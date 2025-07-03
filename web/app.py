@@ -1,17 +1,20 @@
-import sys
 import os
+os.environ["STREAMLIT_WATCHER_TYPE"] = "watchdog"
+
+import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import streamlit as st
 from backtest.runner import run_backtest
 import matplotlib.pyplot as plt
-from data.yahoo_data import get_pair_data
+from data.yahoo_data import get_data, get_pair_data
 from strategies.pairs_trading import test_cointegration, generate_zscore_signals
+
 
 st.set_page_config(page_title="Quant Strategy Platform", layout="wide")
 st.title("📈 US Stock Quant Strategy Platform - SMA & Pairs Trading")
 
-strategy = st.selectbox("Select Strategy", ["SMA Crossover", "Pairs Trading"])
+strategy = st.selectbox("Select Strategy", ["SMA Crossover", "Pairs Trading", "LSTM Prediction"])
 
 if strategy == "SMA Crossover":
     symbol = st.text_input("Stock Symbol", "AAPL")
@@ -68,3 +71,26 @@ elif strategy == "Pairs Trading":
             st.pyplot(fig)
         else:
             st.warning(f"Cointegration test failed (p={pval:.4f}) ❌")
+            
+elif strategy == "LSTM Prediction":
+    symbol = st.text_input("Stock Symbol", "AAPL")
+
+    if st.button("Run LSTM Forecast"):
+        import torch
+        import sys
+        import asyncio
+        if sys.platform == "darwin":
+            try:
+                asyncio.set_event_loop(asyncio.new_event_loop())
+            except RuntimeError:
+                pass
+        from strategies.lstm_strategy import train_and_predict
+        df = get_data(symbol)
+        result = train_and_predict(df)
+
+        fig, ax = plt.subplots(figsize=(10, 4))
+        ax.plot(result.index, result['Actual Close'], label='Actual')
+        ax.plot(result.index, result['Predicted Close'], label='Predicted')
+        ax.set_title(f'{symbol} - LSTM Forecast')
+        ax.legend()
+        st.pyplot(fig)

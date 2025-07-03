@@ -53,3 +53,5 @@ urllib3==2.4.0
 websockets==15.0.1
 yfinance==0.2.61
 statsmodels
+torch
+scikit-learn
